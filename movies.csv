@@ -1,0 +1,36 @@
+movie,recommend1,recommend2,recommend3,recommend4
+3 Idiots,PK,Dangal,Chhichhore,Taare Zameen Par
+PK,3 Idiots,Dangal,OMG,Sanju
+Dangal,3 Idiots,Sultan,Chak De India,PK
+Sholay,Deewar,Don,Amar Akbar Anthony,Zanjeer
+Don,Raees,Dhoom,War,Pathaan
+Pathaan,War,Tiger 3,Don,Raees
+War,Pathaan,Tiger 3,Bang Bang,Dhoom
+Tiger 3,Pathaan,War,Ek Tha Tiger,Bajrangi Bhaijaan
+Kabir Singh,Animal,Aashiqui 2,Rockstar,Sanam Teri Kasam
+Animal,Kabir Singh,Rockstar,Sanju,Gadar 2
+Rockstar,Kabir Singh,Aashiqui 2,Sanju,Love Aaj Kal
+Aashiqui 2,Rockstar,Kabir Singh,Sanam Teri Kasam,Ek Villain
+Sanju,PK,3 Idiots,Animal,Rockstar
+Bajrangi Bhaijaan,Tiger 3,Sultan,Dangal,Pathaan
+Sultan,Dangal,Bajrangi Bhaijaan,Tiger 3,War
+Chennai Express,Dilwale,Singham,Bol Bachchan,Ready
+Dilwale,Chennai Express,Kuch Kuch Hota Hai,Kal Ho Naa Ho,DDLJ
+Kuch Kuch Hota Hai,Kal Ho Naa Ho,DDLJ,Dilwale,Kabhi Khushi Kabhie Gham
+Kal Ho Naa Ho,Kuch Kuch Hota Hai,DDLJ,Dilwale,My Name Is Khan
+DDLJ,Kuch Kuch Hota Hai,Kal Ho Naa Ho,Dilwale,Kabhi Khushi Kabhie Gham
+Bhool Bhulaiyaa,Stree,Bhediya,Golmaal,Housefull
+Stree,Bhediya,Bhool Bhulaiyaa,Munjya,Roohi
+Bhediya,Stree,Munjya,Bhool Bhulaiyaa,Roohi
+Golmaal,Housefull,Bhool Bhulaiyaa,Ready,Bol Bachchan
+Housefull,Golmaal,Bhool Bhulaiyaa,Ready,Welcome
+Welcome,Housefull,Golmaal,Ready,Bol Bachchan
+Ready,Welcome,Housefull,Golmaal,Bol Bachchan
+Drishyam,Andhadhun,Special 26,Raid,Kaabil
+Andhadhun,Drishyam,Special 26,Raid,Article 15
+Special 26,Drishyam,Andhadhun,Raid,Baby
+Gadar 2,Border,Animal,Pathaan,Tiger 3
+Border,Gadar 2,URI,Shershaah,Kesari
+URI,Shershaah,Kesari,Border,Gadar 2
+Shershaah,URI,Kesari,Border,Gadar 2
+Kesari,URI,Shershaah,Border,Gadar 2

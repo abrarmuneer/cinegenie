@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#111;
+color:white;
+}
+
+header{
+background:black;
+padding:20px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.logo{
+font-size:30px;
+color:red;
+font-weight:bold;
+}
+
+button{
+padding:10px 18px;
+background:red;
+color:white;
+border:none;
+border-radius:8px;
+cursor:pointer;
+}
+
+.container{
+padding:30px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+background:#222;
+}
+
+th,td{
+border:1px solid #444;
+padding:12px;
+text-align:left;
+}
+
+th{
+background:red;
+}
+
+h2{
+margin-top:40px;
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">🎬 CineGenie Admin</div>
+
+<a href="/logout">
+<button>Logout</button>
+</a>
+
+</header>
+
+<div class="container">
+
+<h2>Registered Users</h2>
+
+<table>
+
+<tr>
+<th>Username</th>
+<th>Password</th>
+</tr>
+
+{% for row in users %}
+
+<tr>
+<td>{{ row[0] }}</td>
+<td>{{ row[1] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+<h2>User Reviews</h2>
+
+<table>
+
+<tr>
+<th>Movie</th>
+<th>User</th>
+<th>Rating</th>
+<th>Review</th>
+</tr>
+
+{% for row in reviews %}
+
+<tr>
+<td>{{ row[0] }}</td>
+<td>{{ row[1] }}</td>
+<td>{{ row[2] }}</td>
+<td>{{ row[3] }}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</div>
+
+</body>
+</html>
