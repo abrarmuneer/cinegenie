@@ -29,18 +29,35 @@ def get_movie(name):
         return {}
 
 # ======================
-# Recommendation Database
+# Genre Based AI Recommendation
 # ======================
-movie_map = {
-    "3 Idiots": ["PK", "Dangal", "Chhichhore"],
-    "PK": ["3 Idiots", "OMG", "Dangal"],
-    "Animal": ["Kabir Singh", "Sanju", "Rockstar"],
-    "Pathaan": ["War", "Tiger 3", "Don"],
-    "War": ["Pathaan", "Tiger 3", "Bang Bang"],
-    "Dangal": ["Sultan", "3 Idiots", "PK"],
-    "Kabir Singh": ["Animal", "Sanju", "Aashiqui 2"],
-    "Sholay": ["Don", "Deewar", "Amar Akbar Anthony"]
-}
+def get_recommendations(genre):
+
+    genre = genre.lower()
+
+    if "action" in genre:
+        return ["Pathaan", "War", "Jawan"]
+
+    elif "comedy" in genre:
+        return ["3 Idiots", "PK", "Chhichhore"]
+
+    elif "romance" in genre:
+        return ["Titanic", "Aashiqui 2", "Rockstar"]
+
+    elif "drama" in genre:
+        return ["Dangal", "Sanju", "Taare Zameen Par"]
+
+    elif "thriller" in genre:
+        return ["Drishyam", "Andhadhun", "Raazi"]
+
+    elif "horror" in genre:
+        return ["Stree", "1920", "Bhool Bhulaiyaa"]
+
+    elif "sci-fi" in genre or "science fiction" in genre:
+        return ["Interstellar", "Avatar", "Inception"]
+
+    else:
+        return ["Animal", "3 Idiots", "Pathaan"]
 
 # ======================
 # Trending Movies
@@ -64,6 +81,7 @@ def login():
 # ======================
 @app.route("/check", methods=["POST"])
 def check():
+
     username = request.form["username"]
     password = request.form["password"]
 
@@ -81,17 +99,15 @@ def check():
     return redirect("/")
 
 # ======================
-# Signup Page
+# Signup
 # ======================
 @app.route("/signup")
 def signup():
     return render_template("signup.html")
 
-# ======================
-# Register User
-# ======================
 @app.route("/register", methods=["POST"])
 def register():
+
     users = pd.read_csv("users.csv")
 
     new_user = pd.DataFrame({
@@ -113,6 +129,7 @@ def home():
     if "user" not in session:
         return redirect("/")
 
+    # Trending Movies
     trending = []
 
     for item in trending_names:
@@ -132,23 +149,9 @@ def home():
         movie_name = request.form["movie"].strip()
         movie = get_movie(movie_name)
 
-        movie_input = movie_name.lower()
-        recs = []
+        genre = movie.get("Genre", "")
 
-        for key in movie_map.keys():
-
-            key_lower = key.lower()
-
-            if (
-                movie_input == key_lower or
-                movie_input in key_lower or
-                key_lower in movie_input
-            ):
-                recs = movie_map[key]
-                break
-
-        if not recs:
-            recs = ["3 Idiots", "PK", "Dangal"]
+        recs = get_recommendations(genre)
 
         for item in recs:
 
@@ -175,9 +178,6 @@ def home():
 # ======================
 @app.route("/review", methods=["POST"])
 def review():
-
-    if "user" not in session:
-        return redirect("/")
 
     reviews = pd.read_csv("reviews.csv")
 
