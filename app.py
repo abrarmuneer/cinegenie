@@ -112,13 +112,28 @@ def login():
 
 
 # =========================
-# CHECK LOGIN
+# CHECK LOGIN (USER + ADMIN SAME PAGE)
 # =========================
 @app.route("/check", methods=["POST"])
 def check():
-    username = request.form["username"]
-    password = request.form["password"]
 
+    username = request.form["username"].strip()
+    password = request.form["password"].strip()
+
+    # ADMIN LOGIN
+    if username == "admin" and password == "1234":
+
+        reviews = pd.read_csv("reviews.csv")
+        users = pd.read_csv("users.csv")
+
+        return render_template(
+            "admin.html",
+            reviews=reviews.values.tolist(),
+            total_reviews=len(reviews),
+            total_users=len(users)
+        )
+
+    # NORMAL USER LOGIN
     users = pd.read_csv("users.csv")
 
     user = users[
@@ -146,6 +161,7 @@ def signup():
 # =========================
 @app.route("/register", methods=["POST"])
 def register():
+
     users = pd.read_csv("users.csv")
 
     new_user = pd.DataFrame({
@@ -175,7 +191,6 @@ def home():
     if request.method == "POST":
 
         name = request.form["movie"]
-
         movie = get_movie(name)
 
         if movie:
@@ -215,37 +230,6 @@ def review():
     reviews.to_csv("reviews.csv", index=False)
 
     return redirect("/home")
-
-
-# =========================
-# ADMIN LOGIN + PANEL
-# =========================
-@app.route("/admin", methods=["GET", "POST"])
-def admin():
-
-    error = ""
-
-    if request.method == "POST":
-
-        username = request.form["username"].strip()
-        password = request.form["password"].strip()
-
-        if username == "admin" and password == "1234":
-
-            reviews = pd.read_csv("reviews.csv")
-            users = pd.read_csv("users.csv")
-
-            return render_template(
-                "admin.html",
-                reviews=reviews.values.tolist(),
-                total_reviews=len(reviews),
-                total_users=len(users)
-            )
-
-        else:
-            error = "Wrong Username or Password"
-
-    return render_template("admin_login.html", error=error)
 
 
 # =========================
