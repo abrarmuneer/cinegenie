@@ -223,10 +223,12 @@ def review():
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
 
+    error = ""
+
     if request.method == "POST":
 
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form["username"].strip()
+        password = request.form["password"].strip()
 
         if username == "admin" and password == "1234":
 
@@ -240,7 +242,10 @@ def admin():
                 total_users=len(users)
             )
 
-    return render_template("admin_login.html")
+        else:
+            error = "Wrong Username or Password"
+
+    return render_template("admin_login.html", error=error)
 
 
 # =========================
