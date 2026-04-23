@@ -1,26 +1,43 @@
 from flask import Flask, render_template, request, redirect, session
-import pandas as pd
+import sqlite3
 import os
 import requests
 
 app = Flask(__name__)
 app.secret_key = "abrar_secret_key"
 
-
-# =========================
-# CREATE FILES
-# =========================
-if not os.path.exists("users.csv"):
-    pd.DataFrame(columns=["username", "password"]).to_csv("users.csv", index=False)
-
-if not os.path.exists("reviews.csv"):
-    pd.DataFrame(columns=["movie", "user", "rating", "review"]).to_csv("reviews.csv", index=False)
-
-
-# =========================
-# TMDB API KEY
-# =========================
 TMDB_API_KEY = "4196abdb9be20831bf8efe5c871163c8"
+
+
+# =========================
+# DATABASE CREATE
+# =========================
+def init_db():
+    conn = sqlite3.connect("movieverse.db")
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE,
+        password TEXT
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS reviews(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        movie TEXT,
+        user TEXT,
+        rating TEXT,
+        review TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
 
 
 # =========================
@@ -52,33 +69,33 @@ def get_movie(name):
 
 
 # =========================
-# GET RECOMMENDATIONS
+# RECOMMENDATIONS
 # =========================
 def get_recommendations(movie_id):
     try:
         url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
         data = requests.get(url).json()
 
-        recommendations = []
+        recs = []
 
         for item in data["results"][:6]:
             poster = ""
             if item["poster_path"]:
                 poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
 
-            recommendations.append({
+            recs.append({
                 "title": item["title"],
                 "poster": poster,
                 "rating": item["vote_average"]
             })
 
-        return recommendations
+        return recs
     except:
         return []
 
 
 # =========================
-# TRENDING MOVIES
+# TRENDING
 # =========================
 def trending_movies():
     try:
@@ -112,7 +129,7 @@ def login():
 
 
 # =========================
-# CHECK LOGIN (USER + ADMIN SAME PAGE)
+# CHECK LOGIN
 # =========================
 @app.route("/check", methods=["POST"])
 def check():
@@ -120,28 +137,41 @@ def check():
     username = request.form["username"].strip()
     password = request.form["password"].strip()
 
-    # ADMIN LOGIN
+    # ADMIN
     if username == "admin" and password == "1234":
 
-        reviews = pd.read_csv("reviews.csv")
-        users = pd.read_csv("users.csv")
+        conn = sqlite3.connect("movieverse.db")
+        cur = conn.cursor()
+
+        cur.execute("SELECT username,password FROM users")
+        users = cur.fetchall()
+
+        cur.execute("SELECT movie,user,rating,review FROM reviews")
+        reviews = cur.fetchall()
+
+        conn.close()
 
         return render_template(
             "admin.html",
-            reviews=reviews.values.tolist(),
-            total_reviews=len(reviews),
-            total_users=len(users)
+            users=users,
+            reviews=reviews,
+            total_users=len(users),
+            total_reviews=len(reviews)
         )
 
-    # NORMAL USER LOGIN
-    users = pd.read_csv("users.csv")
+    # NORMAL USER
+    conn = sqlite3.connect("movieverse.db")
+    cur = conn.cursor()
 
-    user = users[
-        (users["username"] == username) &
-        (users["password"] == password)
-    ]
+    cur.execute(
+        "SELECT * FROM users WHERE username=? AND password=?",
+        (username, password)
+    )
 
-    if not user.empty:
+    user = cur.fetchone()
+    conn.close()
+
+    if user:
         session["user"] = username
         return redirect("/home")
 
@@ -162,15 +192,22 @@ def signup():
 @app.route("/register", methods=["POST"])
 def register():
 
-    users = pd.read_csv("users.csv")
+    username = request.form["username"].strip()
+    password = request.form["password"].strip()
 
-    new_user = pd.DataFrame({
-        "username": [request.form["username"]],
-        "password": [request.form["password"]]
-    })
+    conn = sqlite3.connect("movieverse.db")
+    cur = conn.cursor()
 
-    users = pd.concat([users, new_user], ignore_index=True)
-    users.to_csv("users.csv", index=False)
+    try:
+        cur.execute(
+            "INSERT INTO users(username,password) VALUES(?,?)",
+            (username, password)
+        )
+        conn.commit()
+    except:
+        pass
+
+    conn.close()
 
     return redirect("/")
 
@@ -196,7 +233,13 @@ def home():
         if movie:
             recommendations = get_recommendations(movie["id"])
 
-    reviews = pd.read_csv("reviews.csv")
+    conn = sqlite3.connect("movieverse.db")
+    cur = conn.cursor()
+
+    cur.execute("SELECT movie,user,rating,review FROM reviews")
+    reviews = cur.fetchall()
+
+    conn.close()
 
     return render_template(
         "index.html",
@@ -204,7 +247,7 @@ def home():
         movie=movie,
         recommendations=recommendations,
         trending=trending,
-        reviews=reviews.values.tolist()
+        reviews=reviews
     )
 
 
@@ -217,17 +260,19 @@ def review():
     if "user" not in session:
         return redirect("/")
 
-    reviews = pd.read_csv("reviews.csv")
+    movie = request.form["movie"]
+    review = request.form["review"]
 
-    new_review = pd.DataFrame({
-        "movie": [request.form["movie"]],
-        "user": [session["user"]],
-        "rating": ["5"],
-        "review": [request.form["review"]]
-    })
+    conn = sqlite3.connect("movieverse.db")
+    cur = conn.cursor()
 
-    reviews = pd.concat([reviews, new_review], ignore_index=True)
-    reviews.to_csv("reviews.csv", index=False)
+    cur.execute(
+        "INSERT INTO reviews(movie,user,rating,review) VALUES(?,?,?,?)",
+        (movie, session["user"], "5", review)
+    )
+
+    conn.commit()
+    conn.close()
 
     return redirect("/home")
 
@@ -242,7 +287,7 @@ def logout():
 
 
 # =========================
-# RUN APP
+# RUN
 # =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
