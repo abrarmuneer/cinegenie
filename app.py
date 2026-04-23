@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, session
 import pandas as pd
 import os
 import requests
-import random
 
 app = Flask(__name__)
 app.secret_key = "abrar_secret_key"
@@ -35,7 +34,9 @@ def get_movie(name):
         if data["results"]:
             movie = data["results"][0]
 
-            poster = "https://image.tmdb.org/t/p/w500" + movie["poster_path"] if movie["poster_path"] else ""
+            poster = ""
+            if movie["poster_path"]:
+                poster = "https://image.tmdb.org/t/p/w500" + movie["poster_path"]
 
             return {
                 "title": movie["title"],
@@ -46,7 +47,6 @@ def get_movie(name):
             }
 
         return None
-
     except:
         return None
 
@@ -63,7 +63,6 @@ def get_recommendations(movie_id):
 
         for item in data["results"][:6]:
             poster = ""
-
             if item["poster_path"]:
                 poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
 
@@ -74,7 +73,6 @@ def get_recommendations(movie_id):
             })
 
         return recommendations
-
     except:
         return []
 
@@ -91,7 +89,6 @@ def trending_movies():
 
         for item in data["results"][:6]:
             poster = ""
-
             if item["poster_path"]:
                 poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
 
@@ -102,7 +99,6 @@ def trending_movies():
             })
 
         return trending
-
     except:
         return []
 
@@ -203,6 +199,9 @@ def home():
 @app.route("/review", methods=["POST"])
 def review():
 
+    if "user" not in session:
+        return redirect("/")
+
     reviews = pd.read_csv("reviews.csv")
 
     new_review = pd.DataFrame({
@@ -216,6 +215,32 @@ def review():
     reviews.to_csv("reviews.csv", index=False)
 
     return redirect("/home")
+
+
+# =========================
+# ADMIN LOGIN + PANEL
+# =========================
+@app.route("/admin", methods=["GET", "POST"])
+def admin():
+
+    if request.method == "POST":
+
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if username == "admin" and password == "1234":
+
+            reviews = pd.read_csv("reviews.csv")
+            users = pd.read_csv("users.csv")
+
+            return render_template(
+                "admin.html",
+                reviews=reviews.values.tolist(),
+                total_reviews=len(reviews),
+                total_users=len(users)
+            )
+
+    return render_template("admin_login.html")
 
 
 # =========================
