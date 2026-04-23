@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, session
-import sqlite3
+import psycopg2
 import os
 import requests
 
@@ -8,17 +8,26 @@ app.secret_key = "abrar_secret_key"
 
 TMDB_API_KEY = "4196abdb9be20831bf8efe5c871163c8"
 
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
 
 # =========================
-# DATABASE CREATE
+# DATABASE CONNECTION
+# =========================
+def get_conn():
+    return psycopg2.connect(DATABASE_URL)
+
+
+# =========================
+# CREATE TABLES
 # =========================
 def init_db():
-    conn = sqlite3.connect("movieverse.db")
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS users(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         username TEXT UNIQUE,
         password TEXT
     )
@@ -26,98 +35,19 @@ def init_db():
 
     cur.execute("""
     CREATE TABLE IF NOT EXISTS reviews(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         movie TEXT,
-        user TEXT,
+        username TEXT,
         rating TEXT,
         review TEXT
     )
     """)
 
     conn.commit()
+    cur.close()
     conn.close()
 
 init_db()
-
-
-# =========================
-# GET MOVIE DATA
-# =========================
-def get_movie(name):
-    try:
-        url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={name}"
-        data = requests.get(url).json()
-
-        if data["results"]:
-            movie = data["results"][0]
-
-            poster = ""
-            if movie["poster_path"]:
-                poster = "https://image.tmdb.org/t/p/w500" + movie["poster_path"]
-
-            return {
-                "title": movie["title"],
-                "poster": poster,
-                "rating": movie["vote_average"],
-                "overview": movie["overview"],
-                "id": movie["id"]
-            }
-
-        return None
-    except:
-        return None
-
-
-# =========================
-# RECOMMENDATIONS
-# =========================
-def get_recommendations(movie_id):
-    try:
-        url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
-        data = requests.get(url).json()
-
-        recs = []
-
-        for item in data["results"][:6]:
-            poster = ""
-            if item["poster_path"]:
-                poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
-
-            recs.append({
-                "title": item["title"],
-                "poster": poster,
-                "rating": item["vote_average"]
-            })
-
-        return recs
-    except:
-        return []
-
-
-# =========================
-# TRENDING
-# =========================
-def trending_movies():
-    try:
-        url = f"https://api.themoviedb.org/3/trending/movie/day?api_key={TMDB_API_KEY}"
-        data = requests.get(url).json()
-
-        trending = []
-
-        for item in data["results"][:6]:
-            poster = ""
-            if item["poster_path"]:
-                poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
-
-            trending.append({
-                "title": item["title"],
-                "poster": poster,
-                "rating": item["vote_average"]
-            })
-
-        return trending
-    except:
-        return []
 
 
 # =========================
@@ -134,21 +64,22 @@ def login():
 @app.route("/check", methods=["POST"])
 def check():
 
-    username = request.form["username"].strip()
-    password = request.form["password"].strip()
+    username = request.form["username"]
+    password = request.form["password"]
 
     # ADMIN
     if username == "admin" and password == "1234":
 
-        conn = sqlite3.connect("movieverse.db")
+        conn = get_conn()
         cur = conn.cursor()
 
         cur.execute("SELECT username,password FROM users")
         users = cur.fetchall()
 
-        cur.execute("SELECT movie,user,rating,review FROM reviews")
+        cur.execute("SELECT movie,username,rating,review FROM reviews")
         reviews = cur.fetchall()
 
+        cur.close()
         conn.close()
 
         return render_template(
@@ -159,16 +90,18 @@ def check():
             total_reviews=len(reviews)
         )
 
-    # NORMAL USER
-    conn = sqlite3.connect("movieverse.db")
+    # USER LOGIN
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
+        "SELECT * FROM users WHERE username=%s AND password=%s",
         (username, password)
     )
 
     user = cur.fetchone()
+
+    cur.close()
     conn.close()
 
     if user:
@@ -179,75 +112,53 @@ def check():
 
 
 # =========================
-# SIGNUP PAGE
+# SIGNUP
 # =========================
 @app.route("/signup")
 def signup():
     return render_template("signup.html")
 
 
-# =========================
-# REGISTER
-# =========================
 @app.route("/register", methods=["POST"])
 def register():
 
-    username = request.form["username"].strip()
-    password = request.form["password"].strip()
+    username = request.form["username"]
+    password = request.form["password"]
 
-    conn = sqlite3.connect("movieverse.db")
+    conn = get_conn()
     cur = conn.cursor()
 
     try:
         cur.execute(
-            "INSERT INTO users(username,password) VALUES(?,?)",
+            "INSERT INTO users(username,password) VALUES(%s,%s)",
             (username, password)
         )
         conn.commit()
     except:
         pass
 
+    cur.close()
     conn.close()
 
     return redirect("/")
 
 
 # =========================
-# HOME PAGE
+# HOME
 # =========================
-@app.route("/home", methods=["GET", "POST"])
+@app.route("/home")
 def home():
 
     if "user" not in session:
         return redirect("/")
 
-    movie = None
-    recommendations = []
-    trending = trending_movies()
-
-    if request.method == "POST":
-
-        name = request.form["movie"]
-        movie = get_movie(name)
-
-        if movie:
-            recommendations = get_recommendations(movie["id"])
-
-    conn = sqlite3.connect("movieverse.db")
-    cur = conn.cursor()
-
-    cur.execute("SELECT movie,user,rating,review FROM reviews")
-    reviews = cur.fetchall()
-
-    conn.close()
-
     return render_template(
         "index.html",
         username=session["user"],
-        movie=movie,
-        recommendations=recommendations,
-        trending=trending,
-        reviews=reviews
+        movie=None,
+        recommendations=[],
+        trending=[],
+        reviews=[]
     )
 
 
@@ -261,17 +172,19 @@ def review():
         return redirect("/")
 
     movie = request.form["movie"]
-    review = request.form["review"]
+    review_text = request.form["review"]
 
-    conn = sqlite3.connect("movieverse.db")
+    conn = get_conn()
     cur = conn.cursor()
 
     cur.execute(
-        "INSERT INTO reviews(movie,user,rating,review) VALUES(?,?,?,?)",
-        (movie, session["user"], "5", review)
+        "INSERT INTO reviews(movie,username,rating,review) VALUES(%s,%s,%s,%s)",
+        (movie, session["user"], "5", review_text)
     )
 
     conn.commit()
+
+    cur.close()
     conn.close()
 
     return redirect("/home")
