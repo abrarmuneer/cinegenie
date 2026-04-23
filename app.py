@@ -16,15 +16,30 @@ if not os.path.exists("reviews.csv"):
     pd.DataFrame(columns=["movie", "user", "rating", "review"]).to_csv("reviews.csv", index=False)
 
 # ======================
-# OMDb API
+# TMDB API KEY
 # ======================
-OMDB_API_KEY = "trilogy"
+TMDB_API_KEY = "4196abdb9be20831bf8efe5c871163c8"
 
+# ======================
+# Get Movie Details
+# ======================
 def get_movie(name):
     try:
-        url = f"http://www.omdbapi.com/?t={name}&apikey={OMDB_API_KEY}"
-        data = requests.get(url, timeout=5).json()
-        return data
+        url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={name}"
+        response = requests.get(url, timeout=5).json()
+
+        if response["results"]:
+            movie = response["results"][0]
+
+            return {
+                "Title": movie.get("title", name),
+                "Poster": "https://image.tmdb.org/t/p/w500" + movie["poster_path"] if movie.get("poster_path") else "https://via.placeholder.com/300x450",
+                "imdbRating": round(movie.get("vote_average", 0), 1),
+                "Genre": str(movie.get("genre_ids", []))
+            }
+
+        return {}
+
     except:
         return {}
 
@@ -35,25 +50,25 @@ def get_recommendations(genre):
 
     genre = genre.lower()
 
-    if "action" in genre:
+    if "28" in genre:
         return ["Pathaan", "War", "Jawan"]
 
-    elif "comedy" in genre:
+    elif "35" in genre:
         return ["3 Idiots", "PK", "Chhichhore"]
 
-    elif "romance" in genre:
+    elif "10749" in genre:
         return ["Titanic", "Aashiqui 2", "Rockstar"]
 
-    elif "drama" in genre:
+    elif "18" in genre:
         return ["Dangal", "Sanju", "Taare Zameen Par"]
 
-    elif "thriller" in genre:
+    elif "53" in genre:
         return ["Drishyam", "Andhadhun", "Raazi"]
 
-    elif "horror" in genre:
+    elif "27" in genre:
         return ["Stree", "1920", "Bhool Bhulaiyaa"]
 
-    elif "sci-fi" in genre or "science fiction" in genre:
+    elif "878" in genre:
         return ["Interstellar", "Avatar", "Inception"]
 
     else:
@@ -129,7 +144,6 @@ def home():
     if "user" not in session:
         return redirect("/")
 
-    # Trending Movies
     trending = []
 
     for item in trending_names:
@@ -137,7 +151,7 @@ def home():
 
         trending.append({
             "title": data.get("Title", item),
-            "poster": data.get("Poster", "https://via.placeholder.com/300x450"),
+            "poster": data.get("Poster"),
             "rating": data.get("imdbRating", "N/A")
         })
 
@@ -150,16 +164,14 @@ def home():
         movie = get_movie(movie_name)
 
         genre = movie.get("Genre", "")
-
         recs = get_recommendations(genre)
 
         for item in recs:
-
             d = get_movie(item)
 
             recommendations.append({
                 "name": d.get("Title", item),
-                "poster": d.get("Poster", "https://via.placeholder.com/300x450")
+                "poster": d.get("Poster")
             })
 
     reviews = pd.read_csv("reviews.csv")
