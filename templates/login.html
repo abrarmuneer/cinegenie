@@ -1,132 +1,114 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Movie Verse Login</title>
-
 <style>
-body{
+*{
 margin:0;
-font-family:Arial;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:Arial, Helvetica, sans-serif;
 height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-background:linear-gradient(135deg,#000000,#1c1c1c,#3a0000);
-background-size:400% 400%;
-animation:bgmove 8s infinite alternate;
+overflow:hidden;
+background:#000;
+position:relative;
 }
 
-@keyframes bgmove{
-0%{background-position:left;}
-100%{background-position:right;}
+/* Universe Background */
+body::before{
+content:"";
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:
+linear-gradient(rgba(0,0,20,0.55), rgba(0,0,0,0.75)),
+url("https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=1600&q=80");
+background-size:cover;
+background-position:center;
+z-index:-2;
 }
 
-.box{
-background:rgba(255,255,255,0.08);
-backdrop-filter:blur(12px);
-padding:40px;
+/* Glow Effect */
+body::after{
+content:"";
+position:absolute;
+top:-20%;
+left:-20%;
+width:140%;
+height:140%;
+background:
+radial-gradient(circle, rgba(0,140,255,0.18), transparent 40%),
+radial-gradient(circle, rgba(255,0,120,0.15), transparent 35%);
+animation:spaceGlow 10s linear infinite alternate;
+z-index:-1;
+}
+
+@keyframes spaceGlow{
+0%{transform:translate(0,0);}
+100%{transform:translate(60px,40px);}
+}
+
+/* Login Box */
+.container{
+width:430px;
+max-width:95%;
+padding:35px;
 border-radius:20px;
+background:rgba(0,0,0,0.55);
+backdrop-filter:blur(10px);
+box-shadow:0 0 25px rgba(255,255,255,0.08);
+color:white;
 text-align:center;
-width:360px;
-box-shadow:0 0 20px rgba(0,0,0,0.6);
 }
 
 h1{
-color:red;
-margin-bottom:8px;
-font-size:34px;
+color:#ff2b2b;
+margin-bottom:10px;
+font-size:42px;
 }
 
-h3{
-color:white;
-font-weight:normal;
-margin-bottom:20px;
+p{
+margin-bottom:25px;
+color:#ddd;
 }
 
 input{
-width:92%;
-padding:13px;
-margin:10px 0;
+width:100%;
+padding:14px;
+margin-bottom:14px;
 border:none;
 border-radius:10px;
 font-size:16px;
 }
 
 button{
-padding:12px;
-width:95%;
+width:100%;
+padding:14px;
 border:none;
 border-radius:10px;
-font-size:16px;
+font-size:18px;
+font-weight:bold;
 cursor:pointer;
 margin-top:10px;
+background:#e50914;
+color:white;
 transition:0.3s;
 }
 
-.login{
-background:red;
-color:white;
-}
-
-.login:hover{
-background:darkred;
+button:hover{
 transform:scale(1.03);
+background:#ff2433;
 }
 
-.signup{
-background:green;
-color:white;
+.signup-btn{
+background:#18b600;
 }
 
-.signup:hover{
-background:darkgreen;
-transform:scale(1.03);
-}
-
-.eye{
-background:#555;
-width:auto;
-padding:10px 15px;
-margin-top:0;
+.signup-btn:hover{
+background:#23d100;
 }
 </style>
-</head>
-
-<body>
-
-<div class="box">
-
-<h1>🎬Movie Verse</h1>
-<h3>Created by Abrar</h3>
-
-<form action="/check" method="POST">
-
-<input type="text" name="username" placeholder="Username" required><br>
-
-<input type="password" id="pass" name="password" placeholder="Password" required>
-
-<button type="button" class="eye" onclick="showPass()">👁</button><br>
-
-<button type="submit" class="login">Login</button>
-
-</form>
-
-<form action="/signup">
-<button type="submit" class="signup">Sign Up</button>
-</form>
-
-</div>
-
-<script>
-function showPass(){
-var x=document.getElementById("pass");
-if(x.type=="password"){
-x.type="text";
-}else{
-x.type="password";
-}
-}
-</script>
-
-</body>
-</html>
