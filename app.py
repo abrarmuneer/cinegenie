@@ -2,127 +2,154 @@ from flask import Flask, render_template, request, redirect, session
 import pandas as pd
 import os
 import requests
+import random
 
 app = Flask(__name__)
 app.secret_key = "abrar_secret_key"
 
-# ======================
-# Create Files
-# ======================
+
+# =========================
+# CREATE FILES
+# =========================
 if not os.path.exists("users.csv"):
     pd.DataFrame(columns=["username", "password"]).to_csv("users.csv", index=False)
 
 if not os.path.exists("reviews.csv"):
     pd.DataFrame(columns=["movie", "user", "rating", "review"]).to_csv("reviews.csv", index=False)
 
-# ======================
+
+# =========================
 # TMDB API KEY
-# ======================
+# =========================
 TMDB_API_KEY = "4196abdb9be20831bf8efe5c871163c8"
 
-# ======================
-# Get Movie Details
-# ======================
+
+# =========================
+# GET MOVIE DATA
+# =========================
 def get_movie(name):
     try:
         url = f"https://api.themoviedb.org/3/search/movie?api_key={TMDB_API_KEY}&query={name}"
-        response = requests.get(url, timeout=5).json()
+        data = requests.get(url).json()
 
-        if response["results"]:
-            movie = response["results"][0]
+        if data["results"]:
+            movie = data["results"][0]
+
+            poster = "https://image.tmdb.org/t/p/w500" + movie["poster_path"] if movie["poster_path"] else ""
 
             return {
-                "Title": movie.get("title", name),
-                "Poster": "https://image.tmdb.org/t/p/w500" + movie["poster_path"] if movie.get("poster_path") else "https://via.placeholder.com/300x450",
-                "imdbRating": round(movie.get("vote_average", 0), 1),
-                "Genre": str(movie.get("genre_ids", []))
+                "title": movie["title"],
+                "poster": poster,
+                "rating": movie["vote_average"],
+                "overview": movie["overview"],
+                "id": movie["id"]
             }
 
-        return {}
+        return None
 
     except:
-        return {}
+        return None
 
-# ======================
-# Genre Based AI Recommendation
-# ======================
-def get_recommendations(genre):
 
-    genre = genre.lower()
+# =========================
+# GET RECOMMENDATIONS
+# =========================
+def get_recommendations(movie_id):
+    try:
+        url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
+        data = requests.get(url).json()
 
-    if "28" in genre:
-        return ["Pathaan", "War", "Jawan"]
+        recommendations = []
 
-    elif "35" in genre:
-        return ["3 Idiots", "PK", "Chhichhore"]
+        for item in data["results"][:6]:
+            poster = ""
 
-    elif "10749" in genre:
-        return ["Titanic", "Aashiqui 2", "Rockstar"]
+            if item["poster_path"]:
+                poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
 
-    elif "18" in genre:
-        return ["Dangal", "Sanju", "Taare Zameen Par"]
+            recommendations.append({
+                "title": item["title"],
+                "poster": poster,
+                "rating": item["vote_average"]
+            })
 
-    elif "53" in genre:
-        return ["Drishyam", "Andhadhun", "Raazi"]
+        return recommendations
 
-    elif "27" in genre:
-        return ["Stree", "1920", "Bhool Bhulaiyaa"]
+    except:
+        return []
 
-    elif "878" in genre:
-        return ["Interstellar", "Avatar", "Inception"]
 
-    else:
-        return ["Animal", "3 Idiots", "Pathaan"]
+# =========================
+# TRENDING MOVIES
+# =========================
+def trending_movies():
+    try:
+        url = f"https://api.themoviedb.org/3/trending/movie/day?api_key={TMDB_API_KEY}"
+        data = requests.get(url).json()
 
-# ======================
-# Trending Movies
-# ======================
-trending_names = [
-    "Animal",
-    "Pathaan",
-    "3 Idiots",
-    "Dangal"
-]
+        trending = []
 
-# ======================
-# Login Page
-# ======================
+        for item in data["results"][:6]:
+            poster = ""
+
+            if item["poster_path"]:
+                poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
+
+            trending.append({
+                "title": item["title"],
+                "poster": poster,
+                "rating": item["vote_average"]
+            })
+
+        return trending
+
+    except:
+        return []
+
+
+# =========================
+# LOGIN PAGE
+# =========================
 @app.route("/")
 def login():
     return render_template("login.html")
 
-# ======================
-# Check Login
-# ======================
+
+# =========================
+# CHECK LOGIN
+# =========================
 @app.route("/check", methods=["POST"])
 def check():
-
     username = request.form["username"]
     password = request.form["password"]
 
     users = pd.read_csv("users.csv")
 
-    match = users[
+    user = users[
         (users["username"] == username) &
         (users["password"] == password)
     ]
 
-    if not match.empty:
+    if not user.empty:
         session["user"] = username
         return redirect("/home")
 
     return redirect("/")
 
-# ======================
-# Signup
-# ======================
+
+# =========================
+# SIGNUP PAGE
+# =========================
 @app.route("/signup")
 def signup():
     return render_template("signup.html")
 
+
+# =========================
+# REGISTER
+# =========================
 @app.route("/register", methods=["POST"])
 def register():
-
     users = pd.read_csv("users.csv")
 
     new_user = pd.DataFrame({
@@ -135,59 +162,44 @@ def register():
 
     return redirect("/")
 
-# ======================
-# Home Page
-# ======================
+
+# =========================
+# HOME PAGE
+# =========================
 @app.route("/home", methods=["GET", "POST"])
 def home():
 
     if "user" not in session:
         return redirect("/")
 
-    trending = []
-
-    for item in trending_names:
-        data = get_movie(item)
-
-        trending.append({
-            "title": data.get("Title", item),
-            "poster": data.get("Poster"),
-            "rating": data.get("imdbRating", "N/A")
-        })
-
     movie = None
     recommendations = []
+    trending = trending_movies()
 
     if request.method == "POST":
 
-        movie_name = request.form["movie"].strip()
-        movie = get_movie(movie_name)
+        name = request.form["movie"]
 
-        genre = movie.get("Genre", "")
-        recs = get_recommendations(genre)
+        movie = get_movie(name)
 
-        for item in recs:
-            d = get_movie(item)
-
-            recommendations.append({
-                "name": d.get("Title", item),
-                "poster": d.get("Poster")
-            })
+        if movie:
+            recommendations = get_recommendations(movie["id"])
 
     reviews = pd.read_csv("reviews.csv")
 
     return render_template(
         "index.html",
         username=session["user"],
-        trending=trending,
         movie=movie,
         recommendations=recommendations,
+        trending=trending,
         reviews=reviews.values.tolist()
     )
 
-# ======================
-# Save Review
-# ======================
+
+# =========================
+# REVIEW
+# =========================
 @app.route("/review", methods=["POST"])
 def review():
 
@@ -196,7 +208,7 @@ def review():
     new_review = pd.DataFrame({
         "movie": [request.form["movie"]],
         "user": [session["user"]],
-        "rating": ["-"],
+        "rating": ["5"],
         "review": [request.form["review"]]
     })
 
@@ -205,16 +217,18 @@ def review():
 
     return redirect("/home")
 
-# ======================
-# Logout
-# ======================
+
+# =========================
+# LOGOUT
+# =========================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-# ======================
-# Run App
-# ======================
+
+# =========================
+# RUN APP
+# =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
