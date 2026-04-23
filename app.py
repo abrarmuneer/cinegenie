@@ -1,14 +1,13 @@
 from flask import Flask, render_template, request, redirect, session
-import psycopg
 import os
 import requests
+import psycopg
 
 app = Flask(__name__)
 app.secret_key = "abrar_secret_key"
 
 TMDB_API_KEY = "4196abdb9be20831bf8efe5c871163c8"
-
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 # =========================
@@ -47,12 +46,11 @@ def init_db():
     cur.close()
     conn.close()
 
-
 init_db()
 
 
 # =========================
-# GET MOVIE DATA
+# TMDB FUNCTIONS
 # =========================
 def get_movie(name):
     try:
@@ -79,29 +77,48 @@ def get_movie(name):
         return None
 
 
-# =========================
-# GET RECOMMENDATIONS
-# =========================
 def get_recommendations(movie_id):
     try:
         url = f"https://api.themoviedb.org/3/movie/{movie_id}/recommendations?api_key={TMDB_API_KEY}"
         data = requests.get(url).json()
 
-        rec = []
+        movies = []
 
         for item in data["results"][:6]:
             poster = ""
             if item["poster_path"]:
                 poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
 
-            rec.append({
+            movies.append({
                 "title": item["title"],
                 "poster": poster,
                 "rating": item["vote_average"]
             })
 
-        return rec
+        return movies
+    except:
+        return []
 
+
+def trending_movies():
+    try:
+        url = f"https://api.themoviedb.org/3/trending/movie/day?api_key={TMDB_API_KEY}"
+        data = requests.get(url).json()
+
+        movies = []
+
+        for item in data["results"][:6]:
+            poster = ""
+            if item["poster_path"]:
+                poster = "https://image.tmdb.org/t/p/w500" + item["poster_path"]
+
+            movies.append({
+                "title": item["title"],
+                "poster": poster,
+                "rating": item["vote_average"]
+            })
+
+        return movies
     except:
         return []
 
@@ -146,7 +163,7 @@ def check():
             total_reviews=len(reviews)
         )
 
-    # USER LOGIN
+    # NORMAL USER LOGIN
     conn = get_conn()
     cur = conn.cursor()
 
@@ -176,7 +193,7 @@ def signup():
 
 
 # =========================
-# REGISTER USER
+# REGISTER
 # =========================
 @app.route("/register", methods=["POST"])
 def register():
@@ -213,6 +230,7 @@ def home():
 
     movie = None
     recommendations = []
+    trending = trending_movies()
 
     if request.method == "POST":
         name = request.form["movie"]
@@ -235,13 +253,13 @@ def home():
         username=session["user"],
         movie=movie,
         recommendations=recommendations,
-        trending=[],
+        trending=trending,
         reviews=reviews
     )
 
 
 # =========================
-# REVIEW
+# ADD REVIEW
 # =========================
 @app.route("/review", methods=["POST"])
 def review():
@@ -281,4 +299,4 @@ def logout():
 # RUN APP
 # =========================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
